@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:video_player/video_player.dart';
 import 'package:provider/provider.dart';
+import 'package:path_provider/path_provider.dart';
 
 import './utils/screen_utils.dart';
 import './providers/controllers.dart';
@@ -42,6 +44,7 @@ class VideoScreen extends StatefulWidget {
 
 class _VideoScreenState extends State<VideoScreen> {
   Future<void> future;
+  String dir;
   List<VideoPlayerController> controllers = [null, null];
   List<Timer> timers = List();
   Timer periodicImages;
@@ -77,11 +80,17 @@ class _VideoScreenState extends State<VideoScreen> {
     super.dispose();
   }
 
+  Future<void> writeLog(String data) async {
+    final File file = File('$dir/log.txt');
+    await file.writeAsString(data, mode: FileMode.writeOnlyAppend);
+  }
+
   Future<void> initAdvertises() async {
-    await precacheImage(AssetImage('assets/${images[imageIndex]}'), context);
-    context.read<Images>().images = 'assets/${images[imageIndex]}';
+    dir = (await getExternalStorageDirectory()).path;
+    await precacheImage(FileImage(File('$dir/${images[imageIndex]}')), context);
+    context.read<Images>().images = '$dir/${images[imageIndex]}';
     controllers[0] =
-        VideoPlayerController.asset('assets/${videos[videoIndex]}');
+        VideoPlayerController.file(File('$dir/${videos[videoIndex]}'));
     await controllers[0].initialize();
     await controllers[0].play();
     attachListener(controllers[0]);
@@ -95,19 +104,22 @@ class _VideoScreenState extends State<VideoScreen> {
   Future<void> loopImages() async {
     if (flagVideo == false) {
       flagImage = true;
+      await writeLog('${DateTime.now()}  LoopImageInit1\n');
       imageCache.clear();
       imageIndex = imageIndex < images.length - 1 ? imageIndex + 1 : 0;
-      await precacheImage(AssetImage('assets/${images[imageIndex]}'), context);
+      await precacheImage(
+          FileImage(File('$dir/${images[imageIndex]}')), context);
       flagImage = false;
     } else {
       Timer.periodic(Duration(milliseconds: 500), (timer) async {
         if (flagVideo == false) {
           flagImage = true;
           timer.cancel();
+          await writeLog('${DateTime.now()}  LoopImageInit2\n');
           imageCache.clear();
           imageIndex = imageIndex < images.length - 1 ? imageIndex + 1 : 0;
           await precacheImage(
-              AssetImage('assets/${images[imageIndex]}'), context);
+              FileImage(File('$dir/${images[imageIndex]}')), context);
           flagImage = false;
         }
       });
@@ -116,27 +128,26 @@ class _VideoScreenState extends State<VideoScreen> {
     periodicImages = Timer.periodic(Duration(seconds: 5), (timer) async {
       if (flagVideo == false) {
         flagImage = true;
-        print('${DateTime.now()} X');
-        context.read<Images>().changeImages('assets/${images[imageIndex]}');
+        context.read<Images>().changeImages('$dir/${images[imageIndex]}');
         imageIndex = imageIndex < images.length - 1 ? imageIndex + 1 : 0;
         WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
           imageCache.clear();
           await precacheImage(
-              AssetImage('assets/${images[imageIndex]}'), context);
+              FileImage(File('$dir/${images[imageIndex]}')), context);
           flagImage = false;
         });
       } else {
-        Timer.periodic(Duration(milliseconds: 500), (timer) {
+        Timer.periodic(Duration(milliseconds: 500), (timer) async {
           if (flagVideo == false) {
             flagImage = true;
-            print('${DateTime.now()} Y');
             timer.cancel();
-            context.read<Images>().changeImages('assets/${images[imageIndex]}');
+            await writeLog('${DateTime.now()}  FlagVideo\n');
+            context.read<Images>().changeImages('$dir/${images[imageIndex]}');
             imageIndex = imageIndex < images.length - 1 ? imageIndex + 1 : 0;
             WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
               imageCache.clear();
               await precacheImage(
-                  AssetImage('assets/${images[imageIndex]}'), context);
+                  FileImage(File('$dir/${images[imageIndex]}')), context);
               flagImage = false;
             });
           }
@@ -146,13 +157,14 @@ class _VideoScreenState extends State<VideoScreen> {
   }
 
   void initCalendars() {
-    for (int i = 1; i < 10000; i++) {
+    for (int i = 1; i < 5; i++) {
       timers.add(
         Timer(
           Duration(
             milliseconds: i * 60000 - 5200,
           ),
           () async {
+            await writeLog('${DateTime.now()}  Before 5s\n');
             lastFive = true;
             periodicImages?.cancel();
           },
@@ -165,11 +177,12 @@ class _VideoScreenState extends State<VideoScreen> {
             milliseconds: i * 60000 - 2700,
           ),
           () async {
+            await writeLog('${DateTime.now()}  Before 2.5s\n');
             imageCache.clear();
             images = imageNames2;
             imageIndex = 0;
             await precacheImage(
-                AssetImage('assets/${images[imageIndex]}'), context);
+                FileImage(File('$dir/${images[imageIndex]}')), context);
           },
         ),
       );
@@ -180,14 +193,15 @@ class _VideoScreenState extends State<VideoScreen> {
             milliseconds: i * 60000 - 200,
           ),
           () async {
-            context.read<Images>().changeImages('assets/${images[imageIndex]}');
+            await writeLog('${DateTime.now()}  Change\n');
+            context.read<Images>().changeImages('$dir/${images[imageIndex]}');
 
             videos = videoNames2;
             previousControllerIndex = controllerIndex;
             controllerIndex = controllerIndex == 0 ? 1 : 0;
             videoIndex = 0;
             controllers[controllerIndex] =
-                VideoPlayerController.asset('assets/${videos[videoIndex]}');
+                VideoPlayerController.file(File('$dir/${videos[videoIndex]}'));
             await controllers[previousControllerIndex]?.pause();
             lastFive = false;
             await controllers[controllerIndex]?.initialize();
@@ -219,15 +233,16 @@ class _VideoScreenState extends State<VideoScreen> {
     if (changeLock == true) return;
     changeLock = true;
 
+    await writeLog('${DateTime.now()}  NextVideo1\n');
     previousControllerIndex = controllerIndex;
     controllerIndex = controllerIndex == 0 ? 1 : 0;
     videoIndex = videoIndex < videos.length - 1 ? videoIndex + 1 : 0;
     controllers[controllerIndex] =
-        VideoPlayerController.asset('assets/${videos[videoIndex]}');
+        VideoPlayerController.file(File('$dir/${videos[videoIndex]}'));
 
     if (flagImage == false) {
       flagVideo = true;
-      print('${DateTime.now()} Z');
+      await writeLog('${DateTime.now()}  NextVideo2\n');
       await controllers[controllerIndex]?.initialize();
       await controllers[controllerIndex]?.play();
       attachListener(controllers[controllerIndex]);
@@ -237,8 +252,8 @@ class _VideoScreenState extends State<VideoScreen> {
       Timer.periodic(Duration(milliseconds: 500), (timer) async {
         if (flagImage == false) {
           flagVideo = true;
-          print('${DateTime.now()} T');
           timer.cancel();
+          await writeLog('${DateTime.now()}  NextVideo3\n');
           await controllers[controllerIndex]?.initialize();
           await controllers[controllerIndex]?.play();
           attachListener(controllers[controllerIndex]);
@@ -254,6 +269,7 @@ class _VideoScreenState extends State<VideoScreen> {
       await controllers[previousControllerIndex]?.dispose();
       changeLock = false;
       flagVideo = false;
+      await writeLog('${DateTime.now()}  NextVideo4\n');
     });
   }
 
@@ -273,7 +289,7 @@ class _VideoScreenState extends State<VideoScreen> {
           color: Colors.black,
           width: width,
           height: height - width * 9 / 16,
-          child: Image.asset(context.watch<Images>().images),
+          child: Image.file(File(context.watch<Images>().images)),
         )
       ],
     );

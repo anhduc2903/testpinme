@@ -7,22 +7,22 @@ import 'package:google_fonts/google_fonts.dart';
 // '435_1584605327_Free Video Templates - Your Shortcut To The Perfect Video_4.mp4',
 
 const videoNames1 = [
-  '1.mp4',
-  '2.mp4',
+  '435_1584523253_Free Video Templates - Your Shortcut To The Perfect Video_3.mp4',
+  '435_1584605327_Free Video Templates - Your Shortcut To The Perfect Video_4.mp4',
 ];
 const videoNames2 = [
-  '1.mp4',
-  '2.mp4',
+  '435_1584523253_Free Video Templates - Your Shortcut To The Perfect Video_3.mp4',
+  '435_1584605327_Free Video Templates - Your Shortcut To The Perfect Video_4.mp4',
 ];
 
 const imageNames1 = [
-  '1.jpg',
-  '2.jpg',
+  "435_1584001185_6fe9b36bf57d36e2abddbd0b696360e3.jpg",
+  "435_1584001185_article-0-14BDB54A000005DC-394_634x811.jpg",
 ];
 
 const imageNames2 = [
-  '1.jpg',
-  '2.jpg',
+  "435_1584001185_6fe9b36bf57d36e2abddbd0b696360e3.jpg",
+  "435_1584001185_article-0-14BDB54A000005DC-394_634x811.jpg",
 ];
 
 final ScreenUtils utils = ScreenUtils();

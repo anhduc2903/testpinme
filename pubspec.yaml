@@ -31,6 +31,7 @@ dependencies:
   google_fonts: ^1.1.0
   video_player: ^0.10.12
   provider: ^4.3.2+1
+  path_provider: ^1.6.14
 
 dev_dependencies:
   flutter_test:
@@ -48,8 +49,8 @@ flutter:
   uses-material-design: true
 
   # To add assets to your application, add an assets section, like this:
-  assets:
-    - assets/
+  # assets:
+  #   - assets/
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/assets-and-images/#resolution-aware.
