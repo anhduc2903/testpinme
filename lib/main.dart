@@ -21,6 +21,7 @@ class MyApp extends StatelessWidget {
     SystemChrome.setEnabledSystemUIOverlays([]);
     return MaterialApp(
       home: Scaffold(
+        backgroundColor: Colors.black,
         body: MultiProvider(
           providers: [
             ChangeNotifierProvider(
@@ -164,7 +165,6 @@ class _VideoScreenState extends State<VideoScreen> {
             milliseconds: i * 60000 - 5200,
           ),
           () async {
-            await writeLog('${DateTime.now()}  Before 5s\n');
             lastFive = true;
             periodicImages?.cancel();
           },
@@ -233,6 +233,7 @@ class _VideoScreenState extends State<VideoScreen> {
     if (changeLock == true) return;
     changeLock = true;
 
+    flagVideo = true;
     await writeLog('${DateTime.now()}  NextVideo1\n');
     previousControllerIndex = controllerIndex;
     controllerIndex = controllerIndex == 0 ? 1 : 0;
@@ -241,7 +242,6 @@ class _VideoScreenState extends State<VideoScreen> {
         VideoPlayerController.file(File('$dir/${videos[videoIndex]}'));
 
     if (flagImage == false) {
-      flagVideo = true;
       await writeLog('${DateTime.now()}  NextVideo2\n');
       await controllers[controllerIndex]?.initialize();
       await controllers[controllerIndex]?.play();
@@ -251,7 +251,6 @@ class _VideoScreenState extends State<VideoScreen> {
     } else {
       Timer.periodic(Duration(milliseconds: 500), (timer) async {
         if (flagImage == false) {
-          flagVideo = true;
           timer.cancel();
           await writeLog('${DateTime.now()}  NextVideo3\n');
           await controllers[controllerIndex]?.initialize();
@@ -268,8 +267,8 @@ class _VideoScreenState extends State<VideoScreen> {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
       await controllers[previousControllerIndex]?.dispose();
       changeLock = false;
-      flagVideo = false;
       await writeLog('${DateTime.now()}  NextVideo4\n');
+      flagVideo = false;
     });
   }
 
