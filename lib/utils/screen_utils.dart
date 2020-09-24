@@ -25,6 +25,11 @@ const imageNames2 = [
   "435_1584001185_article-0-14BDB54A000005DC-394_634x811.jpg",
 ];
 
+// const imageNames2 = [
+//   "436_1585192108_FreeVector-Big-City-Graphics.jpg",
+//   "436_1584605327_89434381_2543346049240704_397688622712619008_o.jpg",
+// ];
+
 final ScreenUtils utils = ScreenUtils();
 final color = Color(int.parse('0xFF404CF0'));
 

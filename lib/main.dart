@@ -111,44 +111,44 @@ class _VideoScreenState extends State<VideoScreen> {
           ),
           () async {
             lastFive = true;
-            periodicImages?.cancel();
+            // periodicImages?.cancel();
           },
         ),
       );
 
-      timers.add(
-        Timer(
-          Duration(
-            milliseconds: i * 60000 - 2700,
-          ),
-          () async {
-            if (flagVideo == false && flagImage == false) {
-              flagImage = true;
-              await writeLog('${DateTime.now()}  Before 2.5s\n');
-              imageCache.clear();
-              images = imageNames2;
-              imageIndex = 0;
-              await precacheImage(
-                  FileImage(File('$dir/${images[imageIndex]}')), context);
-              flagImage = false;
-            } else {
-              Timer.periodic(Duration(milliseconds: 500), (timer) async {
-                if (flagVideo == false && flagImage == false) {
-                  flagImage = true;
-                  timer.cancel();
-                  await writeLog('${DateTime.now()}  Before 2.5s2\n');
-                  imageCache.clear();
-                  images = imageNames2;
-                  imageIndex = 0;
-                  await precacheImage(
-                      FileImage(File('$dir/${images[imageIndex]}')), context);
-                  flagImage = false;
-                }
-              });
-            }
-          },
-        ),
-      );
+      // timers.add(
+      //   Timer(
+      //     Duration(
+      //       milliseconds: i * 60000 - 2700,
+      //     ),
+      //     () async {
+      //       if (flagVideo == false && flagImage == false) {
+      //         flagImage = true;
+      //         await writeLog('${DateTime.now()}  Before 2.5s\n');
+      //         imageCache.clear();
+      //         images = imageNames2;
+      //         imageIndex = 0;
+      //         await precacheImage(
+      //             FileImage(File('$dir/${images[imageIndex]}')), context);
+      //         flagImage = false;
+      //       } else {
+      //         Timer.periodic(Duration(milliseconds: 500), (t) async {
+      //           if (flagVideo == false && flagImage == false) {
+      //             flagImage = true;
+      //             t.cancel();
+      //             await writeLog('${DateTime.now()}  Before 2.5s2\n');
+      //             imageCache.clear();
+      //             images = imageNames2;
+      //             imageIndex = 0;
+      //             await precacheImage(
+      //                 FileImage(File('$dir/${images[imageIndex]}')), context);
+      //             flagImage = false;
+      //           }
+      //         });
+      //       }
+      //     },
+      //   ),
+      // );
 
       timers.add(
         Timer(
@@ -157,8 +157,9 @@ class _VideoScreenState extends State<VideoScreen> {
           ),
           () async {
             if (flagVideo == false && flagImage == false) {
+              flagVideo = true;
               await writeLog('${DateTime.now()}  Change\n');
-              context.read<Images>().changeImages('$dir/${images[imageIndex]}');
+              // context.read<Images>().changeImages('$dir/${images[imageIndex]}');
 
               videos = videoNames2;
               previousControllerIndex = controllerIndex;
@@ -166,25 +167,26 @@ class _VideoScreenState extends State<VideoScreen> {
               videoIndex = 0;
               controllers[controllerIndex] = VideoPlayerController.file(
                   File('$dir/${videos[videoIndex]}'));
-              await controllers[previousControllerIndex]?.pause();
               await controllers[controllerIndex]?.initialize();
               await controllers[controllerIndex]?.play();
               attachListener(controllers[controllerIndex]);
               context.read<Controllers>().changeIndex(controllerIndex);
 
-              Future.delayed(Duration(milliseconds: 500), () async {
+              WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
                 await controllers[previousControllerIndex]?.dispose();
+                // await loopImages();
                 lastFive = false;
-                await loopImages();
+                flagVideo = false;
               });
             } else {
               Timer.periodic(Duration(milliseconds: 500), (timer) async {
                 if (flagVideo == false && flagImage == false) {
+                  flagVideo = true;
                   timer.cancel();
                   await writeLog('${DateTime.now()}  Change2\n');
-                  context
-                      .read<Images>()
-                      .changeImages('$dir/${images[imageIndex]}');
+                  // context
+                  //     .read<Images>()
+                  //     .changeImages('$dir/${images[imageIndex]}');
 
                   videos = videoNames2;
                   previousControllerIndex = controllerIndex;
@@ -192,16 +194,17 @@ class _VideoScreenState extends State<VideoScreen> {
                   videoIndex = 0;
                   controllers[controllerIndex] = VideoPlayerController.file(
                       File('$dir/${videos[videoIndex]}'));
-                  await controllers[previousControllerIndex]?.pause();
                   await controllers[controllerIndex]?.initialize();
                   await controllers[controllerIndex]?.play();
                   attachListener(controllers[controllerIndex]);
                   context.read<Controllers>().changeIndex(controllerIndex);
 
-                  Future.delayed(Duration(milliseconds: 500), () async {
+                  WidgetsBinding.instance
+                      .addPostFrameCallback((timeStamp) async {
                     await controllers[previousControllerIndex]?.dispose();
+                    // await loopImages();
                     lastFive = false;
-                    await loopImages();
+                    flagVideo = false;
                   });
                 }
               });
@@ -237,8 +240,9 @@ class _VideoScreenState extends State<VideoScreen> {
     }
 
     periodicImages = Timer.periodic(Duration(seconds: 5), (timer) async {
-      if (flagVideo == false) {
+      if (flagVideo == false && flagImage == false) {
         flagImage = true;
+        await writeLog('${DateTime.now()}  LoopImage\n');
         context.read<Images>().changeImages('$dir/${images[imageIndex]}');
         WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
           imageIndex = imageIndex < images.length - 1 ? imageIndex + 1 : 0;
@@ -248,10 +252,10 @@ class _VideoScreenState extends State<VideoScreen> {
           flagImage = false;
         });
       } else {
-        Timer.periodic(Duration(milliseconds: 500), (timer) async {
-          if (flagVideo == false) {
+        Timer.periodic(Duration(milliseconds: 500), (t) async {
+          if (flagVideo == false && flagImage == false) {
             flagImage = true;
-            timer.cancel();
+            t.cancel();
             await writeLog('${DateTime.now()}  FlagVideo\n');
             context.read<Images>().changeImages('$dir/${images[imageIndex]}');
             WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
@@ -282,14 +286,14 @@ class _VideoScreenState extends State<VideoScreen> {
     changeLock = true;
 
     flagVideo = true;
-    await writeLog('${DateTime.now()}  NextVideo1\n');
-    previousControllerIndex = controllerIndex;
-    controllerIndex = controllerIndex == 0 ? 1 : 0;
-    videoIndex = videoIndex < videos.length - 1 ? videoIndex + 1 : 0;
-    controllers[controllerIndex] =
-        VideoPlayerController.file(File('$dir/${videos[videoIndex]}'));
 
     if (flagImage == false) {
+      await writeLog('${DateTime.now()}  NextVideo1\n');
+      previousControllerIndex = controllerIndex;
+      controllerIndex = controllerIndex == 0 ? 1 : 0;
+      videoIndex = videoIndex < videos.length - 1 ? videoIndex + 1 : 0;
+      controllers[controllerIndex] =
+          VideoPlayerController.file(File('$dir/${videos[videoIndex]}'));
       await writeLog('${DateTime.now()}  NextVideo2\n');
       await controllers[controllerIndex]?.initialize();
       await controllers[controllerIndex]?.play();
@@ -300,6 +304,12 @@ class _VideoScreenState extends State<VideoScreen> {
       Timer.periodic(Duration(milliseconds: 500), (timer) async {
         if (flagImage == false) {
           timer.cancel();
+          await writeLog('${DateTime.now()}  NextVideo1b\n');
+          previousControllerIndex = controllerIndex;
+          controllerIndex = controllerIndex == 0 ? 1 : 0;
+          videoIndex = videoIndex < videos.length - 1 ? videoIndex + 1 : 0;
+          controllers[controllerIndex] =
+              VideoPlayerController.file(File('$dir/${videos[videoIndex]}'));
           await writeLog('${DateTime.now()}  NextVideo3\n');
           await controllers[controllerIndex]?.initialize();
           await controllers[controllerIndex]?.play();
@@ -314,8 +324,8 @@ class _VideoScreenState extends State<VideoScreen> {
   void disposePreviousController() {
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
       await controllers[previousControllerIndex]?.dispose();
-      changeLock = false;
       await writeLog('${DateTime.now()}  NextVideo4\n');
+      changeLock = false;
       flagVideo = false;
     });
   }
