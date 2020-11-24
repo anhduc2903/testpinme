@@ -16,13 +16,13 @@ const videoNames2 = [
 ];
 
 const imageNames1 = [
-  "435_1584001185_6fe9b36bf57d36e2abddbd0b696360e3.jpg",
   "435_1584001185_article-0-14BDB54A000005DC-394_634x811.jpg",
+  "435_1584001185_6fe9b36bf57d36e2abddbd0b696360e3.jpg",
 ];
 
 const imageNames2 = [
-  "435_1584001185_6fe9b36bf57d36e2abddbd0b696360e3.jpg",
   "435_1584001185_article-0-14BDB54A000005DC-394_634x811.jpg",
+  "435_1584001185_6fe9b36bf57d36e2abddbd0b696360e3.jpg",
 ];
 
 // const imageNames2 = [

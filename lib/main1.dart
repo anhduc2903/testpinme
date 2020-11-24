@@ -3,7 +3,6 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:screen/screen.dart';
 import 'package:video_player/video_player.dart';
 import 'package:provider/provider.dart';
 import 'package:path_provider/path_provider.dart';
@@ -57,6 +56,7 @@ class _VideoScreenState extends State<VideoScreen> {
   int controllerIndex = 0;
   int previousControllerIndex = 1;
   List<bool> changeLock = [false, false];
+  bool lastFive = false;
   bool flagVideo = false;
   bool flagImage = false;
   bool isLockImage = false;
@@ -88,7 +88,6 @@ class _VideoScreenState extends State<VideoScreen> {
   }
 
   Future<void> initAdvertises() async {
-    await Screen.keepOn(true);
     dir = (await getExternalStorageDirectory()).path;
     await precacheImage(FileImage(File('$dir/${images[imageIndex]}')), context);
     context.read<Images>().images = '$dir/${images[imageIndex]}';
@@ -96,24 +95,33 @@ class _VideoScreenState extends State<VideoScreen> {
         VideoPlayerController.file(File('$dir/${videos[videoIndex]}'));
     await controllers[0].initialize();
     await controllers[0].play();
-    attachListener(controllers[0]);
+    attachListener(controllers[0], 0);
 
     WidgetsBinding.instance.addPostFrameCallback((timeStamp) {
-      // initCalendars();
-      // changeImages();
+      initCalendars();
+      changeImages();
     });
   }
 
   void initCalendars() {
-    for (int i = 1; i < 8000; i++) {
+    for (int i = 1; i < 10000; i++) {
+      timers.add(
+        Timer(
+          Duration(
+            milliseconds: i * 60000 - 5200,
+          ),
+          () async {
+            lastFive = true;
+          },
+        ),
+      );
+
       timers.add(
         Timer(
           Duration(
             milliseconds: i * 60000 - 200,
           ),
           () async {
-            controllers[controllerIndex]?.removeListener(changeController);
-
             if (flagVideo == false && flagImage == false) {
               flagVideo = true;
               await writeLog('${DateTime.now()}  Change\n');
@@ -130,9 +138,26 @@ class _VideoScreenState extends State<VideoScreen> {
               await controllers[controllerIndex]?.initialize();
               await writeLog('${DateTime.now()}  InitFirst\n');
               await controllers[controllerIndex]?.play();
-              attachListener(controllers[controllerIndex]);
+              attachListener(controllers[controllerIndex], controllerIndex);
               context.read<Controllers>().changeIndex(controllerIndex);
+              lastFive = false;
               flagVideo = false;
+              changeLock[controllerIndex] = false;
+
+              // WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+              //   await controllers[previousControllerIndex]?.dispose();
+              //   await writeLog('${DateTime.now()}  FinishChange\n');
+              //   changeLock = false;
+              //   lastFive = false;
+              //   flagVideo = false;
+              // });
+              // await Future.delayed(Duration(milliseconds: 500), () async {
+              //   await controllers[previousControllerIndex]?.dispose();
+              //   await writeLog('${DateTime.now()}  FinishChange\n');
+              //   // changeLock = false;
+              //   lastFive = false;
+              //   flagVideo = false;
+              // });
             } else {
               Timer.periodic(Duration(milliseconds: 500), (f) async {
                 if (flagVideo == false && flagImage == false) {
@@ -152,9 +177,27 @@ class _VideoScreenState extends State<VideoScreen> {
                   await controllers[controllerIndex]?.initialize();
                   await writeLog('${DateTime.now()}  InitFirst2\n');
                   await controllers[controllerIndex]?.play();
-                  attachListener(controllers[controllerIndex]);
+                  attachListener(controllers[controllerIndex], controllerIndex);
                   context.read<Controllers>().changeIndex(controllerIndex);
+                  lastFive = false;
                   flagVideo = false;
+                  changeLock[controllerIndex] = false;
+
+                  // WidgetsBinding.instance
+                  //     .addPostFrameCallback((timeStamp) async {
+                  //   await controllers[previousControllerIndex]?.dispose();
+                  //   await writeLog('${DateTime.now()}  FinishChange2\n');
+                  //   changeLock = false;
+                  //   lastFive = false;
+                  //   flagVideo = false;
+                  // });
+                  // await Future.delayed(Duration(milliseconds: 500), () async {
+                  //   await controllers[previousControllerIndex]?.dispose();
+                  //   await writeLog('${DateTime.now()}  FinishChange2\n');
+                  //   // changeLock = false;
+                  //   lastFive = false;
+                  //   flagVideo = false;
+                  // });
                 }
               });
             }
@@ -171,6 +214,7 @@ class _VideoScreenState extends State<VideoScreen> {
       flagImage = true;
       await writeLog('${DateTime.now()}  StartLoopImage\n');
       imageIndex = imageIndex < images.length - 1 ? imageIndex + 1 : 0;
+      imageCache.clear();
       await precacheImage(
           FileImage(File('$dir/${images[imageIndex]}')), context);
       await writeLog('${DateTime.now()}  LoopImage\n');
@@ -184,6 +228,7 @@ class _VideoScreenState extends State<VideoScreen> {
           t.cancel();
           await writeLog('${DateTime.now()}  StartLoopImage2\n');
           imageIndex = imageIndex < images.length - 1 ? imageIndex + 1 : 0;
+          imageCache.clear();
           await precacheImage(
               FileImage(File('$dir/${images[imageIndex]}')), context);
           await writeLog('${DateTime.now()}  LoopImage2\n');
@@ -195,21 +240,19 @@ class _VideoScreenState extends State<VideoScreen> {
     }
   }
 
-  void attachListener(VideoPlayerController controller) {
-    controller.addListener(changeController);
+  void attachListener(VideoPlayerController controller, int index) {
+    controller.addListener(() async {
+      int dur = controller.value.duration.inMilliseconds;
+      int pos = controller.value.position.inMilliseconds;
+      if (pos == dur && lastFive == false) {
+        await nextVideo(index);
+      }
+    });
   }
 
-  Future<void> changeController() async {
-    int pos = controllers[controllerIndex].value.position.inMilliseconds;
-    int dur = controllers[controllerIndex].value.duration.inMilliseconds;
-
-    if (pos == dur) {
-      changeVideo();
-    }
-  }
-
-  Future<void> changeVideo() async {
-    controllers[controllerIndex]?.removeListener(changeController);
+  Future<void> nextVideo(int index) async {
+    if (changeLock[index] == true) return;
+    changeLock[controllerIndex] = true;
 
     if (flagImage == false) {
       flagVideo = true;
@@ -223,8 +266,9 @@ class _VideoScreenState extends State<VideoScreen> {
       await controllers[controllerIndex]?.initialize();
       await writeLog('${DateTime.now()}  NextVideo2\n');
       await controllers[controllerIndex]?.play();
-      attachListener(controllers[controllerIndex]);
+      attachListener(controllers[controllerIndex], controllerIndex);
       context.read<Controllers>().changeIndex(controllerIndex);
+      changeLock[controllerIndex] = false;
       flagVideo = false;
     } else {
       Timer.periodic(Duration(milliseconds: 500), (e) async {
@@ -236,17 +280,34 @@ class _VideoScreenState extends State<VideoScreen> {
           controllerIndex = controllerIndex == 0 ? 1 : 0;
           await disposeController();
           videoIndex = videoIndex < videos.length - 1 ? videoIndex + 1 : 0;
-          controllers[controllerIndex] = 
+          controllers[controllerIndex] =
               VideoPlayerController.file(File('$dir/${videos[videoIndex]}'));
           await controllers[controllerIndex]?.initialize();
-          await writeLog('${DateTime.now()}  NextVideo2b\n');
+          await writeLog('${DateTime.now()}  NextVideo3\n');
           await controllers[controllerIndex]?.play();
-          attachListener(controllers[controllerIndex]);
+          attachListener(controllers[controllerIndex], controllerIndex);
           context.read<Controllers>().changeIndex(controllerIndex);
+          changeLock[controllerIndex] = false;
           flagVideo = false;
         }
       });
     }
+  }
+
+  Future<void> disposePreviousController() async {
+    // WidgetsBinding.instance.addPostFrameCallback((timeStamp) async {
+    //   await controllers[previousControllerIndex]?.dispose();
+    //   await writeLog('${DateTime.now()}  NextVideo4\n');
+    //   changeLock = false;
+    //   flagVideo = false;
+    // });
+
+    // await Future.delayed(Duration(milliseconds: 500), () async {
+    //   await controllers[previousControllerIndex]?.dispose();
+    //   await writeLog('${DateTime.now()}  NextVideo4\n');
+    //   changeLock = false;
+    //   flagVideo = false;
+    // });
   }
 
   Future<void> disposeController() async {
