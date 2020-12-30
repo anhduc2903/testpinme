@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import 'package:screen/screen.dart';
 import 'package:video_player/video_player.dart';
 import 'package:provider/provider.dart';
@@ -91,6 +92,8 @@ class _VideoScreenState extends State<VideoScreen> {
     await Screen.keepOn(true);
     dir = (await getExternalStorageDirectory()).path;
     await precacheImage(FileImage(File('$dir/${images[imageIndex]}')), context);
+    await precacheImage(
+        FileImage(File('$dir/${images[imageIndex + 1]}')), context);
     context.read<Images>().images = '$dir/${images[imageIndex]}';
     controllers[0] =
         VideoPlayerController.file(File('$dir/${videos[videoIndex]}'));
@@ -167,32 +170,11 @@ class _VideoScreenState extends State<VideoScreen> {
   Future<void> changeImages() async {
     await Future.delayed(Duration(seconds: 5));
     if (isLockImage == true) return;
-    if (flagVideo == false) {
-      flagImage = true;
-      await writeLog('${DateTime.now()}  StartLoopImage\n');
-      imageIndex = imageIndex < images.length - 1 ? imageIndex + 1 : 0;
-      await precacheImage(
-          FileImage(File('$dir/${images[imageIndex]}')), context);
-      await writeLog('${DateTime.now()}  LoopImage\n');
-      context.read<Images>().changeImages('$dir/${images[imageIndex]}');
-      changeImages();
-      flagImage = false;
-    } else {
-      Timer.periodic(Duration(milliseconds: 500), (t) async {
-        if (flagVideo == false) {
-          flagImage = true;
-          t.cancel();
-          await writeLog('${DateTime.now()}  StartLoopImage2\n');
-          imageIndex = imageIndex < images.length - 1 ? imageIndex + 1 : 0;
-          await precacheImage(
-              FileImage(File('$dir/${images[imageIndex]}')), context);
-          await writeLog('${DateTime.now()}  LoopImage2\n');
-          context.read<Images>().changeImages('$dir/${images[imageIndex]}');
-          changeImages();
-          flagImage = false;
-        }
-      });
-    }
+    await writeLog('${DateTime.now()}  StartLoopImage\n');
+    imageIndex = imageIndex < images.length - 1 ? imageIndex + 1 : 0;
+    await writeLog('${DateTime.now()}  LoopImage\n');
+    context.read<Images>().changeImages('$dir/${images[imageIndex]}');
+    changeImages();
   }
 
   void attachListener(VideoPlayerController controller) {
@@ -236,7 +218,7 @@ class _VideoScreenState extends State<VideoScreen> {
           controllerIndex = controllerIndex == 0 ? 1 : 0;
           await disposeController();
           videoIndex = videoIndex < videos.length - 1 ? videoIndex + 1 : 0;
-          controllers[controllerIndex] = 
+          controllers[controllerIndex] =
               VideoPlayerController.file(File('$dir/${videos[videoIndex]}'));
           await controllers[controllerIndex]?.initialize();
           await writeLog('${DateTime.now()}  NextVideo2b\n');
